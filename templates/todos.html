@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="date"] {
+            padding: 8px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 8px 12px;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .done {
+            text-decoration: line-through;
+            color: gray;
+        }
+        .due-date {
+            font-size: 0.9em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>To-Do List</h1>
+
+    <form method="POST">
+        <input type="text" name="task" placeholder="Enter a new task" required>
+        <input type="date" name="due_date">
+        <button type="submit">Add Task</button>
+    </form>
+
+    <ul>
+        {% for task in tasks %}
+            <li>
+                <span class="{{ 'done' if task[2] else '' }}">{{ task[1] }}</span>
+                {% if task[3] %}
+                    <span class="due-date"> (Due: {{ task[3] }})</span>
+                {% endif %}
+                <a href="/todos/{{ task[0] }}/toggle">[Complete]</a>
+                <a href="/todos/{{ task[0] }}/delete">[Delete]</a>
+            </li>
+        {% else %}
+            <li>No tasks yet!</li>
+        {% endfor %}
+    </ul>
+
+    <p><a href="/logout">Logout</a></p>
+</body>
+</html>

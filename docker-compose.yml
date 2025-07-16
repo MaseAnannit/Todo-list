@@ -1,0 +1,24 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: db
+      DB_NAME: flaskdb
+      DB_USER: flaskuser
+      DB_PASSWORD: flaskpass
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: flaskdb
+      POSTGRES_USER: flaskuser
+      POSTGRES_PASSWORD: flaskpass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
