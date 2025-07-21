@@ -39,7 +39,17 @@ def init_db():
             done BOOLEAN DEFAULT FALSE
         )
     ''')
-    
+
+    cur.execute("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name='todos' AND column_name='order_index'
+    """)
+    exists = cur.fetchone()
+    if not exists:
+        cur.execute("ALTER TABLE todos ADD COLUMN order_index INTEGER DEFAULT 0;")
+
+
     # Add due_date column if it doesn't exist
     cur.execute("""
         SELECT column_name
@@ -76,7 +86,7 @@ def get_user(username):
 @app.route('/')
 def home():
     if 'username' in session:
-        return redirect(url_for('todos'))
+        return redirect(url_for('login'))
     return redirect('/login')
 
 # --- REGISTER ---
@@ -202,6 +212,20 @@ def toggle_todo(todo_id):
     cur.close()
     conn.close()
     return redirect('/todos')
+
+@app.route('/reorder', methods=['POST'])
+def reorder():
+    data = request.get_json()
+    user_id = session['user_id']
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            for item in data:
+                cur.execute(
+                    "UPDATE todos SET order_index = %s WHERE id = %s AND user_id = %s",
+                    (item['position'], item['id'], user_id)
+                )
+        conn.commit()
+    return '', 204
 
 # --- MAIN ---
 if __name__ == '__main__':

@@ -1,0 +1,23 @@
+{
+  "name": "todo-list",
+  "version": "1.0.0",
+  "description": "",
+  "main": "cypress.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaseAnannit/Todo-list.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MaseAnannit/Todo-list/issues"
+  },
+  "homepage": "https://github.com/MaseAnannit/Todo-list#readme",
+  "devDependencies": {
+    "cypress": "^14.5.2"
+  }
+}
