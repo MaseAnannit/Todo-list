@@ -1,4 +1,5 @@
 import os
+import time
 import psycopg2
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -8,13 +9,19 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key'
 
 # --- DATABASE CONNECTION ---
-def get_db_connection():
-    return psycopg2.connect(
-        host=os.environ.get("DB_HOST", "localhost"),
-        database=os.environ.get("DB_NAME", "flaskdb"),
-        user=os.environ.get("DB_USER", "flaskuser"),
-        password=os.environ.get("DB_PASSWORD", "flaskpass")
-    )
+def get_db_connection(retries=5, delay=2):
+    for i in range(retries):
+        try:
+            return psycopg2.connect(
+                host=os.environ["DB_HOST"],
+                dbname=os.environ["DB_NAME"],
+                user=os.environ["DB_USER"],
+                password=os.environ["DB_PASSWORD"]
+            )
+        except psycopg2.OperationalError as e:
+            print(f"DB not ready yet (attempt {i+1}/{retries}): {e}")
+            time.sleep(delay)
+    raise Exception("Could not connect to DB after retries")
 
 # --- INITIALIZE DATABASE ---
 def init_db():
