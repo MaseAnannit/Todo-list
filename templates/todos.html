@@ -10,12 +10,25 @@
         form {
             margin-bottom: 20px;
         }
-        input[type="text"], input[type="date"] {
+        input[type="text"], input[type="date"], select {
             padding: 8px;
             margin-right: 10px;
         }
         button {
             padding: 8px 12px;
+        }
+        .columns {
+            display: flex;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .column h2 {
+            text-align: center;
         }
         ul {
             list-style-type: none;
@@ -40,23 +53,34 @@
     <form method="POST">
         <input type="text" name="task" placeholder="Enter a new task" required>
         <input type="date" name="due_date">
+        <select name="status">
+            <option value="Planned">Planned</option>
+            <option value="Ongoing">Ongoing</option>
+            <option value="Completed">Completed</option>
+        </select>
         <button type="submit">Add Task</button>
     </form>
 
-    <ul>
-        {% for task in tasks %}
-            <li>
-                <span class="{{ 'done' if task[2] else '' }}">{{ task[1] }}</span>
-                {% if task[3] %}
-                    <span class="due-date"> (Due: {{ task[3] }})</span>
-                {% endif %}
-                <a href="/todos/{{ task[0] }}/toggle">[Complete]</a>
-                <a href="/todos/{{ task[0] }}/delete">[Delete]</a>
-            </li>
-        {% else %}
-            <li>No tasks yet!</li>
+    <div class="columns">
+        {% for status in ['Planned', 'Ongoing', 'Completed'] %}
+        <div class="column">
+            <h2>{{ status }}</h2>
+            <ul>
+                {% for task in grouped_tasks[status] %}
+                <li>
+                    <span class="{{ 'done' if task[2] else '' }}">{{ task[1] }}</span>
+                    {% if task[3] %}
+                        <span class="due-date"> (Due: {{ task[3] }})</span>
+                    {% endif %}
+                    <a href="/todos/{{ task[0] }}/delete">[Delete]</a>
+                </li>
+                {% else %}
+                <li>No tasks</li>
+                {% endfor %}
+            </ul>
+        </div>
         {% endfor %}
-    </ul>
+    </div>
 
     <p><a href="/logout">Logout</a></p>
 </body>

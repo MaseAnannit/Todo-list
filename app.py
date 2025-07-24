@@ -1,6 +1,7 @@
 import os
 import time
 import psycopg2
+import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
@@ -43,28 +44,12 @@ def init_db():
             id SERIAL PRIMARY KEY,
             user_id INTEGER REFERENCES users(id),
             content TEXT NOT NULL,
-            done BOOLEAN DEFAULT FALSE
+            done BOOLEAN DEFAULT FALSE,
+            due_date DATE,
+            status TEXT DEFAULT 'Ongoing',
+            order_index INTEGER DEFAULT 0
         )
     ''')
-
-    cur.execute("""
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name='todos' AND column_name='order_index'
-    """)
-    exists = cur.fetchone()
-    if not exists:
-        cur.execute("ALTER TABLE todos ADD COLUMN order_index INTEGER DEFAULT 0;")
-
-
-    # Add due_date column if it doesn't exist
-    cur.execute("""
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name='todos' AND column_name='due_date'
-    """)
-    if not cur.fetchone():
-        cur.execute('ALTER TABLE todos ADD COLUMN due_date DATE')
 
     # Ensure admin user exists
     cur.execute('SELECT * FROM users WHERE username = %s', ('admin',))
@@ -89,14 +74,12 @@ def get_user(username):
     conn.close()
     return user
 
-# --- HOME REDIRECT ---
+# --- ROUTES ---
+
 @app.route('/')
 def home():
-    if 'username' in session:
-        return redirect(url_for('login'))
-    return redirect('/login')
+    return redirect('/login') if 'username' not in session else redirect('/todos')
 
-# --- REGISTER ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     error = None
@@ -104,7 +87,6 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         if not username or not password:
             error = 'Both fields are required.'
         else:
@@ -123,10 +105,8 @@ def register():
                 conn.rollback()
                 cur.close()
                 conn.close()
-
     return render_template('register.html', error=error, success=success)
 
-# --- LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
@@ -134,58 +114,52 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = get_user(username)
-
         if user and check_password_hash(user[2], password):
             session['username'] = username
+            session['user_id'] = user[0]
             return redirect(url_for('todos'))
         else:
             error = 'Invalid username or password.'
-
     return render_template('login.html', error=error)
 
-# --- LOGOUT ---
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
+    session.clear()
     return redirect('/login')
 
-# --- TODO LIST ---
 @app.route('/todos', methods=['GET', 'POST'])
 def todos():
-    if 'username' not in session:
+    if 'user_id' not in session:
         return redirect('/login')
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Get user ID
-    cur.execute('SELECT id FROM users WHERE username = %s', (session['username'],))
-    user_id = cur.fetchone()[0]
-
-    # Handle new task
     if request.method == 'POST':
-        task = request.form['task']
-        due_date = request.form.get('due_date') or None
+        content = request.form['task']
+        due_date = request.form['due_date'] or None
+        status = request.form['status']
+        cur.execute('''
+            INSERT INTO todos (user_id, content, due_date, status)
+            VALUES (%s, %s, %s, %s)
+        ''', (session['user_id'], content, due_date, status))
+        conn.commit()
 
-        if task:
-            cur.execute(
-                'INSERT INTO todos (user_id, content, due_date) VALUES (%s, %s, %s)',
-                (user_id, task, due_date)
-            )
-            conn.commit()
-
-    # Get tasks
-    cur.execute(
-        'SELECT id, content, done, due_date FROM todos WHERE user_id = %s ORDER BY due_date NULLS LAST, id DESC',
-        (user_id,)
-    )
+    cur.execute('''
+        SELECT id, content, done, due_date, status
+        FROM todos
+        WHERE user_id = %s
+        ORDER BY due_date NULLS LAST, id DESC
+    ''', (session['user_id'],))
     tasks = cur.fetchall()
-
-    cur.close()
     conn.close()
-    return render_template('todos.html', tasks=tasks)
 
-# --- DELETE TODO ---
+    grouped = {'Planned': [], 'Ongoing': [], 'Completed': []}
+    for task in tasks:
+        grouped.get(task[4], []).append(task)
+
+    return render_template('todos.html', grouped_tasks=grouped)
+
 @app.route('/todos/<int:todo_id>/delete')
 def delete_todo(todo_id):
     if 'username' not in session:
@@ -202,26 +176,10 @@ def delete_todo(todo_id):
     conn.close()
     return redirect('/todos')
 
-# --- TOGGLE TODO ---
-@app.route('/todos/<int:todo_id>/toggle')
-def toggle_todo(todo_id):
-    if 'username' not in session:
-        return redirect('/login')
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('''
-        UPDATE todos
-        SET done = NOT done
-        WHERE id = %s AND user_id = (SELECT id FROM users WHERE username = %s)
-    ''', (todo_id, session['username']))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect('/todos')
-
 @app.route('/reorder', methods=['POST'])
 def reorder():
+    if 'user_id' not in session:
+        return redirect('/login')
     data = request.get_json()
     user_id = session['user_id']
     with get_db_connection() as conn:
