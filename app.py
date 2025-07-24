@@ -58,7 +58,7 @@ def init_db():
             'INSERT INTO users (username, password) VALUES (%s, %s)',
             ('admin', generate_password_hash('password123'))
         )
-
+#a
     conn.commit()
     cur.close()
     conn.close()
