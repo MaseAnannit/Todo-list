@@ -176,6 +176,24 @@ def delete_todo(todo_id):
     conn.close()
     return redirect('/todos')
 
+@app.route('/todos/<int:task_id>/move', methods=['POST'])
+def move_task(task_id):
+    if 'user_id' not in session:
+        return '', 403
+
+    new_status = request.json.get('status')
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        UPDATE todos
+        SET status = %s
+        WHERE id = %s AND user_id = %s
+    ''', (new_status, task_id, session['user_id']))
+    conn.commit()
+    conn.close()
+    return '', 204
+
+
 @app.route('/reorder', methods=['POST'])
 def reorder():
     if 'user_id' not in session:

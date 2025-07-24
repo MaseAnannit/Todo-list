@@ -19,13 +19,14 @@
         }
         .columns {
             display: flex;
-            gap: 20px;
+            gap: 30px;
         }
         .column {
             flex: 1;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 8px;
+            background: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ccc;
+            min-height: 300px;
         }
         .column h2 {
             text-align: center;
@@ -36,6 +37,10 @@
         }
         li {
             margin-bottom: 10px;
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            cursor: grab;
         }
         .done {
             text-decoration: line-through;
@@ -63,19 +68,20 @@
 
     <div class="columns">
         {% for status in ['Planned', 'Ongoing', 'Completed'] %}
-        <div class="column">
+        <div class="column"
+             ondrop="drop(event, '{{ status }}')"
+             ondragover="allowDrop(event)">
             <h2>{{ status }}</h2>
             <ul>
                 {% for task in grouped_tasks[status] %}
-                <li>
+                <li id="task-{{ task[0] }}" draggable="true"
+                    ondragstart="drag(event)">
                     <span class="{{ 'done' if task[2] else '' }}">{{ task[1] }}</span>
                     {% if task[3] %}
                         <span class="due-date"> (Due: {{ task[3] }})</span>
                     {% endif %}
                     <a href="/todos/{{ task[0] }}/delete">[Delete]</a>
                 </li>
-                {% else %}
-                <li>No tasks</li>
                 {% endfor %}
             </ul>
         </div>
@@ -83,5 +89,35 @@
     </div>
 
     <p><a href="/logout">Logout</a></p>
+
+    <script>
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        function drop(ev, newStatus) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const taskId = data.split("-")[1];
+
+            fetch(`/todos/${taskId}/move`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: newStatus })
+            }).then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert("Error moving task.");
+                }
+            });
+        }
+    </script>
 </body>
 </html>
