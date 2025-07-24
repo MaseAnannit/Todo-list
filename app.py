@@ -63,7 +63,7 @@ def init_db():
     cur.close()
     conn.close()
     print(":p Database initialized.")
-
+#a
 # --- GET USER FROM DB ---
 def get_user(username):
     conn = get_db_connection()
