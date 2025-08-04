@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Image 
 
 on:
   push:
@@ -21,8 +21,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/todo-list:latest .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/todolist:latest .
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/todo-list:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/todolist:latest
