@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Publish image to Docker Hub
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main  
 
 jobs:
-  build-and-push:
+  publish_images:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,8 +21,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/todolist .
+          docker build -t ./api/ ${{ secrets.DOCKER_USERNAME }}/todolist:latest
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/todolist
+          docker push ${{ secrets.DOCKER_USERNAME }}/todolist:latest
