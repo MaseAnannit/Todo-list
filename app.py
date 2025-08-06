@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key'
 
 # --- DATABASE CONNECTION ---
-def get_db_connection(retries=5, delay=2):
+def get_db_connection(retries=5, delay=2):  
     for i in range(retries):
         try:
             return psycopg2.connect(
@@ -136,15 +136,24 @@ def todos():
     cur = conn.cursor()
 
     if request.method == 'POST':
-        content = request.form['task']
+        content = request.form['task'].strip()
         due_date = request.form['due_date'] or None
         status = request.form['status']
-        cur.execute('''
-            INSERT INTO todos (user_id, content, due_date, status)
-            VALUES (%s, %s, %s, %s)
-        ''', (session['user_id'], content, due_date, status))
-        conn.commit()
 
+        # Check if the task already exists for this user
+        cur.execute('''
+            SELECT 1 FROM todos 
+            WHERE user_id = %s AND content = %s AND (due_date = %s OR (due_date IS NULL AND %s IS NULL))
+        ''', (session['user_id'], content, due_date, due_date))
+        
+        if not cur.fetchone():
+            cur.execute('''
+                INSERT INTO todos (user_id, content, due_date, status)
+                VALUES (%s, %s, %s, %s)
+            ''', (session['user_id'], content, due_date, status))
+            conn.commit()
+
+    # Load tasks
     cur.execute('''
         SELECT id, content, done, due_date, status
         FROM todos
@@ -154,6 +163,7 @@ def todos():
     tasks = cur.fetchall()
     conn.close()
 
+    # Group by status
     grouped = {'Planned': [], 'Ongoing': [], 'Completed': []}
     for task in tasks:
         grouped.get(task[4], []).append(task)

@@ -1,6 +1,5 @@
 services:
   web:
-    image: yourusername/todolist:latest
     build: .
     ports:
       - "5000:5000"
