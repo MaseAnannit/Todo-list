@@ -72,7 +72,7 @@
              ondrop="drop(event, '{{ status }}')"
              ondragover="allowDrop(event)">
             <h2>{{ status }}</h2>
-            <ul>
+            <ul> 
                 {% for task in grouped_tasks[status] %}
                 <li id="task-{{ task[0] }}" draggable="true"
                     ondragstart="drag(event)">
